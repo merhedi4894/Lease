@@ -1,0 +1,843 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ভূমি লিজ ব্যবস্থাপনা</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { colors: { primary: '#1e3a5f', accent: '#0ea5e9' } } }
+        }
+    </script>
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        body { background: linear-gradient(135deg, #e0e7ff 0%, #f1f5f9 100%); min-height: 100vh; }
+        .input-field { transition: all 0.2s; border: 2px solid #e2e8f0; }
+        .input-field:focus { border-color: #0ea5e9; outline: none; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.15); }
+        .btn { transition: all 0.2s; color: white; }
+        .btn:hover { transform: translateY(-1px); }
+        .btn-primary { background: linear-gradient(135deg, #1e3a5f, #2d5a87); }
+        .btn-warning { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .btn-danger { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .btn-success { background: linear-gradient(135deg, #10b981, #059669); }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9999; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); padding: 15px; }
+        
+        .table-responsive { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .profile-img { object-fit: cover; border: 2px solid #1e3a5f; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        
+        .dropdown-list { 
+            position: absolute; 
+            top: 100%; left: 0; right: 0; 
+            background: white; border: 2px solid #0ea5e9; 
+            max-height: 200px; overflow-y: auto; 
+            z-index: 50; 
+            border-radius: 0 0 8px 8px; 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .person-block { border-left: 4px solid #1e3a5f; padding-left: 15px; margin-bottom: 20px; }
+        .person-name-header { font-size: 1.1rem; font-weight: 800; color: #1e3a5f; margin-bottom: 8px; border-bottom: 1px solid #e5e7eb; padding-bottom: 5px; }
+        .status-line { margin-bottom: 4px; font-size: 0.95rem; }
+        .specific-box { text-align: center; margin-bottom: 15px; padding: 10px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .summary-box { background: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #0ea5e9; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+
+        /* Hide Google Warning Banner */
+        body > div:first-child:not(#loginSection):not(#appSection) { display: none !important; height: 0 !important; overflow: hidden !important; position: absolute !important; top: -9999px !important; }
+        body > iframe { display: none !important; height: 0 !important; }
+        .gwt-PopupPanel, .warning-bar { display: none !important; }
+    </style>
+</head>
+<body class="p-2 sm:p-4 md:p-6">
+
+    <!-- LOGIN SECTION -->
+    <div id="loginSection" class="max-w-md mx-auto">
+        <div class="bg-white rounded-2xl shadow-xl p-6 sm:p-8 text-center">
+            <img src="https://i.imgur.com/8CJlOgq.png" alt="" class="w-20 h-20 rounded-full mx-auto mb-4 profile-img" loading="lazy" onerror="this.style.display='none'">
+            <h2 class="text-2xl font-bold text-primary mb-6" data-lang-key="login_title">Login</h2>
+            <form id="loginForm">
+                <input type="text" id="username" value="mehedi4894" readonly class="input-field w-full px-4 py-3 rounded-lg mb-4 bg-gray-100 cursor-not-allowed text-gray-600 font-semibold" required>
+                <input type="password" id="password" placeholder="Password" class="input-field w-full px-4 py-3 rounded-lg mb-4" required>
+                <div id="loginError" class="hidden text-red-500 text-sm mb-3"></div>
+                <button class="btn btn-primary w-full py-3 rounded-lg font-semibold" data-lang-key="login_btn">Login</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN APP SECTION -->
+    <div id="appSection" class="hidden max-w-5xl mx-auto">
+        
+        <!-- Header -->
+        <div class="bg-primary rounded-t-2xl p-4 text-white flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center gap-3 text-center sm:text-left">
+                <img src="https://i.imgur.com/8CJlOgq.png" alt="" class="w-10 h-10 rounded-full border-2 border-white hidden sm:block profile-img" loading="lazy" onerror="this.style.display='none'">
+                <div>
+                    <h1 class="text-xl font-bold" data-lang-key="app_title">ভূমি লিজ ব্যবস্থাপনা</h1>
+                    <p class="text-sm font-semibold text-blue-200">মো: মেহেদী হাসান</p>
+                </div>
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto justify-center items-center">
+                <button onclick="toggleLanguage()" id="langToggleBtn" class="btn bg-yellow-500 text-black px-4 py-2 rounded-lg text-sm font-bold">EN</button>
+                <button onclick="openSettingsModal()" class="btn bg-white text-primary px-4 py-2 rounded-lg text-sm font-bold flex-1 sm:flex-none" data-lang-key="settings_btn">Settings</button>
+                <button onclick="logout()" class="btn bg-red-500/80 hover:bg-red-500 px-4 py-2 rounded-lg text-sm flex-1 sm:flex-none" data-lang-key="logout_btn">Logout</button>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-b-2xl shadow-xl p-4 sm:p-6">
+            
+            <!-- ENTRY FORM -->
+            <div class="border-b pb-6 mb-6">
+                <h3 class="text-lg font-bold text-primary mb-4" data-lang-key="new_entry_title">New Entry</h3>
+                <form id="landForm">
+                    <div class="grid grid-cols-2 md:grid-cols-8 gap-4 items-end">
+                        
+                        <div class="relative col-span-2">
+                            <label class="block text-xs font-semibold text-gray-600 mb-1" data-lang-key="name">নাম</label>
+                            <input type="text" id="newEntryNameInput" placeholder="Type or Select Name" 
+                                   class="input-field w-full px-3 py-2 rounded-lg text-sm bg-white cursor-pointer" autocomplete="off" required>
+                            <div class="absolute right-3 top-9 pointer-events-none text-gray-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                            <div id="newEntryNameDropdown" class="hidden dropdown-list"></div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1" data-lang-key="land">জমির পরিমাণ</label>
+                            <select id="land" required onchange="updateDetailsByLand()" class="input-field w-full px-3 py-2 rounded-lg bg-white">
+                                <option value="" data-lang-key="select_first">Select</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1" data-lang-key="hari_gonona">হারি গণনা শুরু</label>
+                            <input type="text" id="hariBorshoDisplay" readonly class="input-field w-full px-3 py-2 rounded-lg text-sm bg-gray-100 cursor-not-allowed" placeholder="-">
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1" data-lang-key="rate">বিঘা প্রতি হারি</label>
+                            <select id="rate" required class="input-field w-full px-3 py-2 rounded-lg bg-white">
+                                <option value="" data-lang-key="select_first">Select</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1" data-lang-key="tk_given">প্রদেয় টাকা</label>
+                            <input type="number" id="tkGiven" placeholder="Amount" class="input-field w-full px-3 py-2 rounded-lg">
+                        </div>
+
+                        <!-- লিজ বর্ষ Text Input -->
+                        <div>
+                            <label class="block text-xs font-semibold text-gray-600 mb-1" data-lang-key="lease_year">লিজ বর্ষ</label>
+                            <input type="text" id="hariYear" placeholder="e.g. 2024" 
+                                   class="input-field w-full px-3 py-2 rounded-lg text-sm bg-white" autocomplete="off">
+                        </div>
+                        
+                        <div>
+                            <button type="submit" class="btn btn-primary w-full py-2.5 rounded-lg font-semibold text-sm" data-lang-key="save_btn">Save</button>
+                        </div>
+                    </div>
+                    <div id="successMsg" class="hidden mt-3 text-green-600 text-sm text-center font-semibold" data-lang-key="save_success">Saved Successfully!</div>
+                </form>
+            </div>
+
+            <!-- SEARCH & DATABASE -->
+            <div>
+                <h3 class="text-lg font-bold text-primary mb-4" data-lang-key="search_title">Search Database</h3>
+                
+                <div class="space-y-3">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+                        <div class="relative">
+                            <label class="block text-xs text-gray-500 mb-1" data-lang-key="name">নাম</label>
+                            <input type="text" id="searchNameInput" placeholder="Select Name" 
+                                   class="input-field w-full px-3 py-2 rounded-lg text-sm bg-white cursor-pointer" autocomplete="off">
+                            <div class="absolute right-3 top-9 pointer-events-none text-gray-400">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                            </div>
+                            <input type="hidden" id="searchName" value="ALL">
+                            <div id="nameDropdown" class="hidden dropdown-list"></div>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1" data-lang-key="land">জমির পরিমাণ</label>
+                            <select id="searchLand" class="input-field w-full px-3 py-2 rounded-lg bg-white text-sm">
+                                <option value="ALL" data-lang-key="all_lands">All Lands</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs text-gray-500 mb-1" data-lang-key="year">বছর</label>
+                            <select id="searchYear" class="input-field w-full px-3 py-2 rounded-lg bg-white text-sm">
+                                <option value="ALL" data-lang-key="all_years">All Years</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 justify-start">
+                        <button onclick="searchStatus()" class="btn btn-success py-2 px-4 rounded-lg text-xs sm:text-sm font-semibold flex-1 sm:flex-none" data-lang-key="due_status_btn">Due Status</button>
+                        <button onclick="viewDatabase()" class="btn bg-purple-600 text-white py-2 px-4 rounded-lg text-xs sm:text-sm font-semibold flex-1 sm:flex-none" data-lang-key="database_btn">Database</button>
+                        <button onclick="deleteRecordsAction()" class="btn btn-danger py-2 px-4 rounded-lg text-xs sm:text-sm font-semibold flex-1 sm:flex-none" data-lang-key="delete_btn">Delete</button>
+                    </div>
+                </div>
+
+                <!-- Result Area -->
+                <div id="resultArea" class="hidden mt-4">
+                    <div id="statusCard" class="hidden mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl text-center overflow-hidden"></div>
+                    <div id="databaseCard" class="hidden table-responsive border rounded-lg">
+                         <table class="w-full text-xs border-collapse min-w-[600px]">
+                            <thead class="bg-gray-100"><tr>
+                                <th class="p-2 border" data-lang-key="t_date">Date</th>
+                                <th class="p-2 border" data-lang-key="t_name">Name</th>
+                                <th class="p-2 border" data-lang-key="t_land">Land</th>
+                                <th class="p-2 border" data-lang-key="t_rate">Rate</th>
+                                <th class="p-2 border" data-lang-key="t_total">Total</th>
+                                <th class="p-2 border" data-lang-key="t_given">Given</th>
+                                <th class="p-2 border" data-lang-key="lease_year">লিজ বর্ষ</th>
+                            </tr></thead>
+                            <tbody id="tableBody"></tbody>
+                        </table>
+                        <p id="noDataMsg" class="hidden text-center text-gray-400 py-4" data-lang-key="no_data">No records found</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="hidden modal-overlay">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-3xl m-4 max-h-[90vh] flex flex-col relative">
+            <div class="p-4 border-b bg-primary text-white rounded-t-2xl flex justify-between items-center shrink-0">
+                <h3 class="text-lg font-bold" data-lang-key="settings_title">Settings: Manage Profiles</h3>
+                <button onclick="closeSettingsModal()" class="text-white hover:text-gray-200 text-2xl font-bold absolute top-2 right-4">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto flex-grow">
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6 p-4 bg-gray-50 rounded-lg border">
+                    <div>
+                        <label class="block text-xs font-semibold mb-1" data-lang-key="name">Name</label>
+                        <input type="text" id="editName" placeholder="Name" class="input-field w-full px-3 py-2 rounded-lg">
+                        <input type="hidden" id="oldName">
+                        <input type="hidden" id="oldLand">
+                        <input type="hidden" id="oldRate">
+                        <input type="hidden" id="oldHariBorsho">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1" data-lang-key="land">Land</label>
+                        <input type="number" id="editLand" step="any" placeholder="Land" class="input-field w-full px-3 py-2 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1" data-lang-key="hari_gonona">হারি গণনা শুরু</label>
+                        <input type="text" id="editHariBorsho" placeholder="e.g. বৈশাখ" class="input-field w-full px-3 py-2 rounded-lg bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold mb-1" data-lang-key="rate">Rate</label>
+                        <input type="number" id="editRate" step="any" placeholder="Rate" class="input-field w-full px-3 py-2 rounded-lg">
+                    </div>
+                    <div class="flex items-end gap-2 col-span-2 md:col-span-1">
+                        <button onclick="saveProfileAction()" class="btn btn-primary flex-1 py-2 rounded-lg font-semibold text-sm" data-lang-key="save_btn">Save</button>
+                        <button onclick="resetForm()" class="btn bg-gray-400 py-2 px-3 rounded-lg font-semibold text-sm" data-lang-key="clear_btn">Clear</button>
+                    </div>
+                </div>
+                <h4 class="font-bold text-gray-700 mb-2" data-lang-key="saved_profiles">Saved Profiles</h4>
+                <div class="overflow-x-auto border rounded-lg">
+                    <table class="w-full text-sm border-collapse min-w-[500px]">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="p-2 border text-left" data-lang-key="name">Name</th>
+                                <th class="p-2 border text-center" data-lang-key="land">Land</th>
+                                <th class="p-2 border text-center" data-lang-key="hari_gonona">হারি গণনা</th>
+                                <th class="p-2 border text-center" data-lang-key="rate">Rate</th>
+                                <th class="p-2 border text-center" data-lang-key="action">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="settingsTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- LANGUAGE SYSTEM ---
+        let currentLang = 'bn';
+        let currentUser = null;
+
+        const translations = {
+            bn: {
+                login_title: "Login", login_btn: "Login", app_title: "ভূমি লিজ ব্যবস্থাপনা",
+                settings_btn: "Settings", logout_btn: "Logout", new_entry_title: "New Entry",
+                name: "নাম", land: "জমির পরিমাণ(শতাংশ)", rate: "বিঘা প্রতি হারি(টাকা)", 
+                tk_given: "প্রদেয় টাকা", 
+                hari_gonona: "হারি গণনা শুরু", lease_year: "লিজ বর্ষ", save_btn: "Save", save_success: "Saved Successfully!",
+                select_first: "Select Name", search_title: "Search Database",
+                all_lands: "সব জমি", all_years: "সব বছর", due_status_btn: "Due Status",
+                database_btn: "Database", delete_btn: "Delete", t_date: "Date", t_name: "Name",
+                t_land: "Land", t_rate: "Rate", t_total: "Total", t_given: "Given", t_entry: "Entry By",
+                no_data: "No records found", settings_title: "Settings: Manage Profiles",
+                saved_profiles: "Saved Profiles", action: "Action", clear_btn: "Clear",
+                select_month: "মাসের নাম লিখুন", year: "বছর",
+                delete_warning_title: "⚠️ সতর্কতা!",
+                delete_warning_msg: "আপনি কি নিশ্চিত? এটি পূর্বাবস্থায় ফেরানো যাবে না।",
+                delete_specific_warning: (n, y) => `${n} এর ${y} সালের সকল ডাটা ডিলিট হয়ে যাবে।`,
+                profile_delete_warning: (n) => `${n} এর প্রোফাইলটি ডিলিট হয়ে যাবে।`,
+                no_due_data: "কোন বকেয়া নেই। সব হারি পরিশোধ হয়েছে।",
+                due_amount_label: "বকেয়া",
+                paid_status: "হারি পরিশোধ হয়েছে।",
+                summary_name: "নাম", summary_year: "সাল", summary_land: "জমির পরিমাণ"
+            },
+            en: {
+                login_title: "Login", login_btn: "Login", app_title: "Land Lease Management",
+                settings_btn: "Settings", logout_btn: "Logout", new_entry_title: "New Entry",
+                name: "Name", land: "Land (Decimal)", rate: "Rate Per Bigha", tk_given: "Amount Given",
+                hari_gonona: "Lease Start (Month)", lease_year: "Lease Year", save_btn: "Save", save_success: "Saved Successfully!",
+                select_first: "Select Name", search_title: "Search Database",
+                all_lands: "All Lands", all_years: "All Years", due_status_btn: "Due Status",
+                database_btn: "Database", delete_btn: "Delete", t_date: "Date", t_name: "Name",
+                t_land: "Land", t_rate: "Rate", t_total: "Total", t_given: "Given", t_entry: "Entry By",
+                no_data: "No records found", settings_title: "Settings: Manage Profiles",
+                saved_profiles: "Saved Profiles", action: "Action", clear_btn: "Clear",
+                select_month: "Enter Month Name", year: "Year",
+                delete_warning_title: "⚠️ Warning!",
+                delete_warning_msg: "Are you sure? This action cannot be undone.",
+                delete_specific_warning: (n, y) => `All data for ${n} in year ${y} will be deleted.`,
+                profile_delete_warning: (n) => `Profile for ${n} will be deleted.`,
+                no_due_data: "No dues found. All payments cleared.",
+                due_amount_label: "Due",
+                paid_status: "Payment Cleared.",
+                summary_name: "Name", summary_year: "Year", summary_land: "Land Amount"
+            }
+        };
+
+        function toggleLanguage() {
+            currentLang = currentLang === 'bn' ? 'en' : 'bn';
+            document.getElementById('langToggleBtn').innerText = currentLang === 'bn' ? 'EN' : 'বাং';
+            updateLanguage();
+            updateSearchYearDropdown(document.getElementById('searchName').value);
+        }
+
+        function updateLanguage() {
+            const elements = document.querySelectorAll('[data-lang-key]');
+            elements.forEach(el => {
+                const key = el.getAttribute('data-lang-key');
+                if (translations[currentLang][key]) el.innerText = translations[currentLang][key];
+            });
+            document.getElementById('newEntryNameInput').placeholder = translations[currentLang].name;
+            document.getElementById('searchNameInput').placeholder = translations[currentLang].name;
+        }
+
+        // --- APP LOGIC ---
+        let userProfiles = []; 
+        let allSearchNames = [];
+        let searchLandMap = {};
+        let searchYearMap = {}; 
+        let allSearchYears = [];
+
+        // --- SESSION MANAGEMENT ---
+        const IDLE_TIMEOUT = 20 * 60 * 1000; // 20 Minutes
+        let idleTimer;
+
+        function resetIdleTimer() {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(logout, IDLE_TIMEOUT);
+            const session = JSON.parse(localStorage.getItem('landSession'));
+            if (session) {
+                session.lastActivity = Date.now();
+                localStorage.setItem('landSession', JSON.stringify(session));
+            }
+        }
+
+        function checkSession() {
+            const sessionStr = localStorage.getItem('landSession');
+            if (sessionStr) {
+                const session = JSON.parse(sessionStr);
+                const now = Date.now();
+                if (now - session.lastActivity > IDLE_TIMEOUT) {
+                    logout();
+                } else {
+                    currentUser = { name: session.user };
+                    document.getElementById('loginSection').classList.add('hidden');
+                    document.getElementById('appSection').classList.remove('hidden');
+                    loadInitialData();
+                    updateLanguage();
+                    startIdleMonitor();
+                }
+            } else {
+                document.getElementById('loginSection').classList.remove('hidden');
+                document.getElementById('appSection').classList.add('hidden');
+            }
+        }
+        
+        function startIdleMonitor() {
+            window.removeEventListener('mousemove', resetIdleTimer, true);
+            window.removeEventListener('mousedown', resetIdleTimer, true);
+            window.removeEventListener('keypress', resetIdleTimer, true);
+            window.removeEventListener('touchmove', resetIdleTimer, true);
+            window.removeEventListener('scroll', resetIdleTimer, true);
+
+            window.addEventListener('mousemove', resetIdleTimer, true);
+            window.addEventListener('mousedown', resetIdleTimer, true);
+            window.addEventListener('keypress', resetIdleTimer, true);
+            window.addEventListener('touchmove', resetIdleTimer, true);
+            window.addEventListener('scroll', resetIdleTimer, true);
+            resetIdleTimer();
+        }
+        
+        checkSession();
+
+        // --- Login ---
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            google.script.run
+                .withSuccessHandler(function(res) {
+                    if (res.success) {
+                        currentUser = res.user;
+                        const sessionData = { user: res.user.name, lastActivity: Date.now() };
+                        localStorage.setItem('landSession', JSON.stringify(sessionData));
+                        document.getElementById('loginSection').classList.add('hidden');
+                        document.getElementById('appSection').classList.remove('hidden');
+                        loadInitialData();
+                        updateLanguage();
+                        startIdleMonitor();
+                    } else {
+                        document.getElementById('loginError').classList.remove('hidden');
+                        document.getElementById('loginError').innerText = res.message;
+                    }
+                })
+                .verifyLogin({ username: document.getElementById('username').value, password: document.getElementById('password').value });
+        });
+
+        function logout() { 
+            localStorage.removeItem('landSession');
+            clearTimeout(idleTimer);
+            document.getElementById('appSection').classList.add('hidden');
+            document.getElementById('loginSection').classList.remove('hidden');
+            document.getElementById('password').value = '';
+        }
+
+        // --- Initial Load ---
+        function loadInitialData() {
+            google.script.run
+                .withSuccessHandler(function(data) {
+                    userProfiles = data.profiles || [];
+                    populateFormNames(userProfiles);
+                    const options = data.searchOptions || {};
+                    allSearchYears = options.years || [];
+                    searchYearMap = options.yearMap || {};
+                    allSearchNames = options.names || []; 
+                    searchLandMap = options.landMap || {};
+                    populateNameDropdown(allSearchNames);
+                    const currentName = document.getElementById('searchName').value;
+                    if (currentName && currentName !== "ALL") updateSearchYearDropdown(currentName);
+                    else updateSearchYearDropdown("ALL");
+                    
+                    if (!document.getElementById('settingsModal').classList.contains('hidden')) {
+                        renderSettingsTable(userProfiles);
+                    }
+                })
+                .getInitData();
+        }
+
+        function resetSearchInputs() {
+            document.getElementById('searchNameInput').value = '';
+            document.getElementById('searchName').value = 'ALL';
+            document.getElementById('searchYear').value = 'ALL';
+            document.getElementById('searchLand').value = 'ALL';
+            updateSearchYearDropdown("ALL");
+            updateSearchLandDropdown("ALL");
+            populateNameDropdown(allSearchNames);
+        }
+
+        // --- Search Dropdown Logic ---
+        function populateNameDropdown(names) {
+            const dropdown = document.getElementById('nameDropdown');
+            dropdown.innerHTML = '';
+            const allItem = document.createElement('div');
+            allItem.className = "p-2 cursor-pointer hover:bg-gray-100 font-semibold text-blue-600 border-b";
+            allItem.textContent = currentLang === 'bn' ? "সব নাম" : "All Names";
+            allItem.onclick = () => selectSearchName("ALL", currentLang === 'bn' ? "সব নাম" : "All Names");
+            dropdown.appendChild(allItem);
+            if (!names || names.length === 0) {
+                const noItem = document.createElement('div');
+                noItem.className = "p-2 text-gray-400 italic";
+                noItem.textContent = "No data";
+                dropdown.appendChild(noItem);
+            } else {
+                names.forEach(name => {
+                    const item = document.createElement('div');
+                    item.className = "p-2 cursor-pointer hover:bg-gray-100 border-b";
+                    item.textContent = name;
+                    item.onclick = () => selectSearchName(name, name);
+                    dropdown.appendChild(item);
+                });
+            }
+        }
+
+        const searchNameInput = document.getElementById('searchNameInput');
+        const nameDropdown = document.getElementById('nameDropdown');
+
+        searchNameInput.addEventListener('focus', function() {
+            loadInitialData(); 
+            nameDropdown.classList.remove('hidden');
+            searchNameInput.select();
+        });
+
+        searchNameInput.addEventListener('input', function() {
+            const filter = this.value.toLowerCase();
+            const items = nameDropdown.getElementsByTagName('div');
+            for (let i = 0; i < items.length; i++) {
+                const txtValue = items[i].textContent || items[i].innerText;
+                items[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+            }
+            nameDropdown.classList.remove('hidden');
+            document.getElementById('searchName').value = this.value || "ALL";
+        });
+
+        function selectSearchName(value, displayText) {
+            document.getElementById('searchName').value = value;
+            searchNameInput.value = displayText;
+            nameDropdown.classList.add('hidden');
+            updateSearchLandDropdown(value);
+            updateSearchYearDropdown(value);
+        }
+
+        function updateSearchLandDropdown(name) {
+            const landSelect = document.getElementById('searchLand');
+            const allText = currentLang === 'bn' ? "সব জমি" : "All Lands";
+            landSelect.innerHTML = `<option value="ALL">${allText}</option>`;
+            if (name !== "ALL" && searchLandMap[name]) {
+                searchLandMap[name].forEach(land => {
+                    landSelect.innerHTML += `<option value="${land}">${land}</option>`;
+                });
+            }
+        }
+
+        function updateSearchYearDropdown(name) {
+            const yearSelect = document.getElementById('searchYear');
+            const allText = translations[currentLang].all_years;
+            yearSelect.innerHTML = `<option value="ALL">${allText}</option>`;
+            let years = (name === "ALL") ? allSearchYears : (searchYearMap[name] || []);
+            years.forEach(y => yearSelect.innerHTML += `<option value="${y}">${y}</option>`);
+        }
+
+        // --- New Entry Dropdown ---
+        function populateFormNames(profiles) {
+            const distinctNames = [...new Set(profiles.map(p => p.name))];
+            const dropdown = document.getElementById('newEntryNameDropdown');
+            dropdown.innerHTML = '';
+            if(distinctNames.length === 0) dropdown.innerHTML = `<div class="p-2 text-gray-400 italic">No Profiles</div>`;
+            else {
+                distinctNames.forEach(n => {
+                    const item = document.createElement('div');
+                    item.className = "p-2 cursor-pointer hover:bg-gray-100 border-b";
+                    item.textContent = n;
+                    item.onclick = () => selectNewEntryName(n);
+                    dropdown.appendChild(item);
+                });
+            }
+        }
+
+        const newEntryNameInput = document.getElementById('newEntryNameInput');
+        const newEntryNameDropdown = document.getElementById('newEntryNameDropdown');
+
+        newEntryNameInput.addEventListener('focus', function() {
+            newEntryNameDropdown.classList.remove('hidden');
+            newEntryNameInput.select();
+        });
+
+        newEntryNameInput.addEventListener('input', function() {
+            const filter = this.value.toLowerCase();
+            const items = newEntryNameDropdown.getElementsByTagName('div');
+            for (let i = 0; i < items.length; i++) {
+                const txtValue = items[i].textContent || items[i].innerText;
+                items[i].style.display = txtValue.toLowerCase().indexOf(filter) > -1 ? "" : "none";
+            }
+            newEntryNameDropdown.classList.remove('hidden');
+            const exactMatch = userProfiles.find(p => p.name.toLowerCase() === this.value.toLowerCase());
+            if(exactMatch) updateLandRateDropdowns(exactMatch.name);
+        });
+
+        function selectNewEntryName(name) {
+            newEntryNameInput.value = name;
+            newEntryNameDropdown.classList.add('hidden');
+            updateLandRateDropdowns(name);
+        }
+
+        function updateLandRateDropdowns(name) {
+            const matches = userProfiles.filter(p => p.name === name);
+            const landSelect = document.getElementById('land');
+            const rateSelect = document.getElementById('rate');
+            const hariInput = document.getElementById('hariBorshoDisplay');
+            const selectText = translations[currentLang].select_first;
+            landSelect.innerHTML = `<option value="">${selectText}</option>`;
+            rateSelect.innerHTML = `<option value="">${selectText}</option>`;
+            hariInput.value = "";
+            if (matches.length > 0) {
+                const uniqueLands = [...new Set(matches.map(p => p.land))];
+                uniqueLands.forEach(l => landSelect.innerHTML += `<option value="${l}">${l}</option>`);
+                if (matches.length === 1) {
+                    landSelect.value = matches[0].land;
+                    rateSelect.innerHTML = `<option value="${matches[0].rate}">${matches[0].rate}</option>`;
+                    rateSelect.value = matches[0].rate;
+                    hariInput.value = matches[0].hariBorsho || "-";
+                } else {
+                    landSelect.value = uniqueLands[0];
+                    updateDetailsByLand(); 
+                }
+            }
+        }
+
+        function updateDetailsByLand() {
+            const name = document.getElementById('newEntryNameInput').value;
+            const land = document.getElementById('land').value;
+            if (!name || !land) return;
+            const specificProfile = userProfiles.find(p => p.name === name && p.land == land);
+            if (specificProfile) {
+                const rateSelect = document.getElementById('rate');
+                rateSelect.innerHTML = `<option value="${specificProfile.rate}">${specificProfile.rate}</option>`;
+                rateSelect.value = specificProfile.rate;
+                document.getElementById('hariBorshoDisplay').value = specificProfile.hariBorsho || "-";
+            }
+        }
+
+        // Global click listener to close dropdowns
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#searchNameInput') && !e.target.closest('#nameDropdown')) document.getElementById('nameDropdown').classList.add('hidden');
+            if (!e.target.closest('#newEntryNameInput') && !e.target.closest('#newEntryNameDropdown')) document.getElementById('newEntryNameDropdown').classList.add('hidden');
+        });
+
+        // --- Save Form ---
+        document.getElementById('landForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('newEntryNameInput').value;
+            const land = document.getElementById('land').value;
+            const rate = document.getElementById('rate').value;
+            
+            if (!name || !land || !rate) {
+                alert(currentLang === 'bn' ? "অনুগ্রহ করে সব ফিল্ড পূরণ করুন।" : "Please fill all required fields.");
+                return;
+            }
+
+            const landVal = parseFloat(land) || 0;
+            const rateVal = parseFloat(rate) || 0;
+            const hariYearVal = document.getElementById('hariYear').value;
+            
+            const formData = {
+                name: name, land: landVal, rate: rateVal,
+                totalTk: ((rateVal / 33) * landVal).toFixed(2),
+                tkGiven: document.getElementById('tkGiven').value || 0,
+                hariYear: hariYearVal,
+                loggedInUser: currentUser.name
+            };
+
+            const btn = document.querySelector('#landForm button[type="submit"]');
+            const originalText = btn.innerText;
+            btn.disabled = true;
+            btn.innerText = "Saving...";
+
+            google.script.run.withSuccessHandler(function(res) {
+                btn.disabled = false;
+                btn.innerText = originalText;
+                
+                if(res.success) {
+                    const msg = document.getElementById('successMsg');
+                    msg.classList.remove('hidden');
+                    document.getElementById('landForm').reset(); 
+                    document.getElementById('newEntryNameInput').value = ''; 
+                    document.getElementById('hariBorshoDisplay').value = '';
+                    document.getElementById('hariYear').value = ''; 
+                    loadInitialData(); 
+                    setTimeout(() => { msg.classList.add('hidden'); }, 2000);
+                } else {
+                    alert("Error saving data.");
+                }
+            }).saveFormData(formData);
+        });
+
+        // --- Delete Logic ---
+        function deleteRecordsAction() {
+            const name = document.getElementById('searchName').value;
+            const year = document.getElementById('searchYear').value;
+            if (name === "ALL" || year === "ALL") { alert(currentLang === 'bn' ? "নির্দিষ্ট নাম ও বছর সিলেক্ট করুন।" : "Please select specific Name and Year."); return; }
+            const title = translations[currentLang].delete_warning_title;
+            const msgPart1 = translations[currentLang].delete_warning_msg;
+            const msgPart2 = translations[currentLang].delete_specific_warning(name, year);
+            if(confirm(`${title}\n\n${msgPart2}\n\n${msgPart1}`)) {
+                google.script.run.withSuccessHandler(function(res) {
+                    if(res.success) { alert(res.message); resetSearchInputs(); document.getElementById('resultArea').classList.add('hidden'); }
+                    else alert("Error: " + res.message);
+                }).deleteRecords({ name: name, year: year });
+            }
+        }
+
+        // --- Search Status Logic (UPDATED) ---
+        function searchStatus() {
+            const nameVal = document.getElementById('searchName').value || "ALL";
+            const nameText = document.getElementById('searchNameInput').value || (currentLang === 'bn' ? "সব নাম" : "All Names");
+            const landVal = document.getElementById('searchLand').value || "ALL";
+            const yearVal = document.getElementById('searchYear').value || "ALL";
+            const searchData = { name: nameVal, land: landVal, year: yearVal };
+            const isSpecific = (nameVal !== "ALL" && landVal !== "ALL" && yearVal !== "ALL");
+            
+            google.script.run.withSuccessHandler(function(data) {
+                document.getElementById('resultArea').classList.remove('hidden');
+                document.getElementById('statusCard').classList.remove('hidden');
+                document.getElementById('databaseCard').classList.add('hidden');
+                
+                if(data.records.length > 0) {
+                    const peopleMap = {};
+                    
+                    // Grouping Logic
+                    data.records.forEach(r => {
+                        const rName = r.name;
+                        const rYear = r.hariYear || "Unknown";
+                        const rLand = r.land;
+                        
+                        // Initialize Map
+                        if (!peopleMap[rName]) peopleMap[rName] = {};
+                        if (!peopleMap[rName][rYear]) peopleMap[rName][rYear] = {};
+                        
+                        // Key for specific land
+                        if (!peopleMap[rName][rYear][rLand]) {
+                            // Initialize with total 0, paid 0. We will set total only once.
+                            peopleMap[rName][rYear][rLand] = { total: 0, paid: 0, totalSet: false }; 
+                        }
+
+                        // LOGIC CHANGE:
+                        // 1. Set Total only once per group (if not set)
+                        if (!peopleMap[rName][rYear][rLand].totalSet) {
+                            peopleMap[rName][rYear][rLand].total = parseFloat(r.total);
+                            peopleMap[rName][rYear][rLand].totalSet = true;
+                        }
+                        
+                        // 2. Always Sum the Given Amount
+                        peopleMap[rName][rYear][rLand].paid += parseFloat(r.given);
+                    });
+
+                    let statusHtml = `
+                        <div class="bg-white p-4 rounded-lg text-left">
+                            <div class="flex flex-col items-center justify-center mb-4 border-b pb-3">
+                                <h2 class="text-xl md:text-2xl font-extrabold text-primary uppercase tracking-wide">Due Status</h2>
+                            </div>
+                    `;
+
+                    if (nameVal !== "ALL") {
+                        statusHtml += `<div class="summary-box">`;
+                        statusHtml += `<p class="mb-1 text-sm md:text-base"><span class="font-bold text-gray-700">${translations[currentLang].summary_name}:</span> <span class="text-primary font-semibold">${nameText}</span></p>`;
+                        if (yearVal !== "ALL") statusHtml += `<p class="mb-1 text-sm md:text-base"><span class="font-bold text-gray-700">${translations[currentLang].summary_year}:</span> <span class="text-primary font-semibold">${yearVal}</span></p>`;
+                        if (landVal !== "ALL") statusHtml += `<p class="mb-1 text-sm md:text-base"><span class="font-bold text-gray-700">${translations[currentLang].summary_land}:</span> <span class="text-primary font-semibold">${landVal} শতাংশ</span></p>`;
+                        statusHtml += `</div>`;
+                    }
+
+                    const sortedNames = Object.keys(peopleMap).sort();
+                    let hasAnyContent = false;
+
+                    sortedNames.forEach(personName => {
+                        let personContentHtml = ""; let personHasDue = false;
+                        const years = peopleMap[personName];
+                        const sortedYears = Object.keys(years).sort((a, b) => b - a);
+                        sortedYears.forEach(year => {
+                            const lands = years[year];
+                            Object.keys(lands).forEach(land => {
+                                const stats = lands[land];
+                                
+                                // Calculate Due
+                                const due = stats.total - stats.paid;
+                                const isPaid = Math.abs(due) <= 20; // Tolerance
+
+                                if (isSpecific) {
+                                    hasAnyContent = true;
+                                    let lineText = ""; let lineColor = "";
+                                    if (isPaid) { 
+                                        lineText = `${year} সালের ${land} শতাংশ জমির হারি পরিশোধ হয়েছে।`; 
+                                        lineColor = "text-green-600"; 
+                                    } else { 
+                                        lineText = `<span class="font-bold">${personName}</span> - ${year} সালের ${land} শতাংশ জমির বকেয়া <span class="font-bold">${due.toLocaleString('en-IN')}</span> টাকা`; 
+                                        lineColor = "text-red-600"; 
+                                    }
+                                    statusHtml += `<div class="specific-box"><p class="text-base ${lineColor}">${lineText}</p></div>`;
+                                } else {
+                                    if (!isPaid) {
+                                        personHasDue = true; hasAnyContent = true;
+                                        personContentHtml += `<p class="status-line text-red-600">${year} সালের ${land} শতাংশ জমির বকেয়া ${due.toLocaleString('en-IN')} টাকা</p>`;
+                                    }
+                                }
+                            });
+                        });
+                        if (!isSpecific && personHasDue) statusHtml += `<div class="person-block"><div class="person-name-header">${personName}</div>${personContentHtml}</div>`;
+                    });
+                    if (!hasAnyContent) statusHtml += `<div class="text-center text-green-600 font-bold py-4">${translations[currentLang].no_due_data}</div>`;
+                    statusHtml += `</div>`;
+                    document.getElementById('statusCard').innerHTML = statusHtml;
+                } else {
+                    let customMsg = "";
+                    if (nameVal !== "ALL") customMsg = `<p class="mt-2 text-red-600 font-bold text-base md:text-lg">${nameText}</p><p class="text-gray-600 text-xs md:text-sm">${currentLang === 'bn' ? 'কোন তথ্য পাওয়া যায়নি' : 'No records found'}</p>`;
+                    else customMsg = `<p class="mt-2 text-gray-500 font-semibold">${currentLang === 'bn' ? 'কোন তথ্য পাওয়া যায়নি' : 'No data found'}</p>`;
+                    document.getElementById('statusCard').innerHTML = `<div class="text-center py-6">${customMsg}</div>`;
+                }
+            }).getReportData(searchData);
+        }
+
+        function viewDatabase() {
+            const nameVal = document.getElementById('searchName').value || "ALL";
+            if (nameVal === "ALL") { alert(currentLang === 'bn' ? 'ডাটাবেস দেখতে নির্দিষ্ট কোনো নাম সিলেক্ট করুন।' : 'Please select a specific Name.'); return; }
+            const landVal = document.getElementById('searchLand').value || "ALL";
+            const searchData = { name: nameVal, land: landVal, year: document.getElementById('searchYear').value };
+            google.script.run.withSuccessHandler(function(data) {
+                document.getElementById('resultArea').classList.remove('hidden');
+                document.getElementById('statusCard').classList.add('hidden');
+                document.getElementById('databaseCard').classList.remove('hidden');
+                const tbody = document.getElementById('tableBody'); tbody.innerHTML = "";
+                if(data.records.length === 0) document.getElementById('noDataMsg').classList.remove('hidden');
+                else {
+                    document.getElementById('noDataMsg').classList.add('hidden');
+                    data.records.forEach(r => {
+                        tbody.innerHTML += `<tr class="hover:bg-gray-50">
+                            <td class="p-2 border">${r.date}</td>
+                            <td class="p-2 border font-medium">${r.name}</td>
+                            <td class="p-2 border text-center">${r.land}</td>
+                            <td class="p-2 border text-center">${r.rate}</td>
+                            <td class="p-2 border text-right">${parseFloat(r.total).toLocaleString('en-IN')}</td>
+                            <td class="p-2 border text-right text-green-600">${parseFloat(r.given).toLocaleString('en-IN')}</td>
+                            <td class="p-2 border text-center">${r.hariYear || "-"}</td>
+                        </tr>`;
+                    });
+                }
+            }).getReportData(searchData);
+        }
+
+        // --- SETTINGS MODAL LOGIC ---
+        function openSettingsModal() { 
+            document.getElementById('settingsModal').classList.remove('hidden'); 
+            renderSettingsTable(userProfiles); 
+        }
+        function closeSettingsModal() { 
+            document.getElementById('settingsModal').classList.add('hidden'); 
+            resetForm(); 
+        }
+        
+        function renderSettingsTable(profiles) {
+            const tbody = document.getElementById('settingsTableBody'); tbody.innerHTML = "";
+            if(profiles.length === 0) tbody.innerHTML = `<tr><td colspan="5" class="text-center text-gray-400 p-4">${currentLang === 'bn' ? 'কোন প্রোফাইল নেই' : 'No profiles found'}</td></tr>`;
+            else {
+                profiles.forEach(p => {
+                    tbody.innerHTML += `<tr class="border-b hover:bg-gray-50"><td class="p-3 border font-semibold">${p.name}</td><td class="p-3 border text-center">${p.land}</td><td class="p-3 border text-center">${p.hariBorsho || "-"}</td><td class="p-3 border text-center">${p.rate}</td><td class="p-3 border text-center"><div class="flex items-center justify-center gap-1"><button onclick="editProfileAction('${p.name}', '${p.land}', '${p.rate}', '${p.hariBorsho || ""}')" class="btn btn-warning px-3 py-1 rounded text-xs">Edit</button><button onclick="deleteProfileAction('${p.name}', '${p.land}', '${p.rate}')" class="btn btn-danger px-2 py-0.5 rounded text-[10px]">Del</button></div></td></tr>`;
+                });
+            }
+        }
+        function editProfileAction(name, land, rate, hariBorsho) {
+            document.getElementById('editName').value = name; document.getElementById('editLand').value = land; document.getElementById('editRate').value = rate; document.getElementById('editHariBorsho').value = hariBorsho;
+            document.getElementById('oldName').value = name; document.getElementById('oldLand').value = land; document.getElementById('oldRate').value = rate; document.getElementById('oldHariBorsho').value = hariBorsho;
+        }
+        function resetForm() { document.getElementById('editName').value = ''; document.getElementById('editLand').value = ''; document.getElementById('editRate').value = ''; document.getElementById('editHariBorsho').value = ''; document.getElementById('oldName').value = ''; document.getElementById('oldLand').value = ''; document.getElementById('oldRate').value = ''; document.getElementById('oldHariBorsho').value = ''; }
+        function saveProfileAction() {
+            const data = { name: document.getElementById('editName').value, land: document.getElementById('editLand').value, rate: document.getElementById('editRate').value, hariBorsho: document.getElementById('editHariBorsho').value, oldName: document.getElementById('oldName').value, oldLand: document.getElementById('oldLand').value, oldRate: document.getElementById('oldRate').value, oldHariBorsho: document.getElementById('oldHariBorsho').value };
+            if(!data.name || !data.land || !data.rate) { alert("Please fill Name, Land, Rate"); return; }
+            google.script.run.withSuccessHandler(function(res) { if(res.success) { resetForm(); loadInitialData(); } }).saveProfile(data);
+        }
+        function deleteProfileAction(name, land, rate) {
+            const title = translations[currentLang].delete_warning_title; const msgPart1 = translations[currentLang].delete_warning_msg; const msgPart2 = translations[currentLang].profile_delete_warning(name);
+            if(confirm(`${title}\n\n${msgPart2}\n\n${msgPart1}`)) google.script.run.withSuccessHandler(function() { loadInitialData(); }).deleteProfile({ name: name, land: land, rate: rate });
+        }
+    </script>
+</body>
+</html>
